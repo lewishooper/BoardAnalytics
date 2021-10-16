@@ -1,6 +1,6 @@
 #The GReat Overhaul
 rm(list=ls())
-# Enhanced to get both Motions and break into sentences
+# Source file used in Paper #2
 #devtools::install_github("hadley/lineprof")
 library(tools)
 #library(readtext)
@@ -20,16 +20,7 @@ library(stringr)
 library(stringi)
 #library(pdftools)
 library(wordcloud)
-
-## Data Files
-getwd()
-DBSource<-(c("~/BoardAnalytics/TheGreatOverhaul/SourceData/ONTAllHospitalMinutesAsText"))  #external data not saved in Git hum
-RDSfiles<-c("Not Convertable")
-CompletedFiles<-c("~/BoardAnalytics/TheGreatOverhaul/BoardAnalyticsv2/Results")
-#OtherData<-c("ChathamOldBoard/Results")
-
 ### functions
-
 
 MotionFinder<- function(row,FullMinutes,MotionDF,Begins,Ends){
   # This function pulls all the motions from the Minute text file ie. FullFiles[row,"text"]
@@ -134,6 +125,11 @@ getwd()
 DBMotions<-data.frame(FileName=character(0),Motion=character(0),Organization=character(0),Date=POSIXct(),
                       Sequence=numeric(0),stringsAsFactors = FALSE)
 getwd()
+DBSource<-(c("~/BoardAnalytics/TheGreatOverhaul/SourceData/ONTAllHospitalMinutesAsText"))
+RDSfiles<-c("Not Convertable")
+CompletedFiles<-c("~/BoardAnalytics/TheGreatOverhaul/Results")
+#OtherData<-c("ChathamOldBoard/Results")
+
 
 DBFileList<-as.data.frame(list.files(DBSource,full.names = TRUE,all.files=FALSE,recursive = FALSE))
 
@@ -307,7 +303,7 @@ DBFileList<-DBFileList %>%
   rename(text=NewText)
 
 BoardSentences<- DBFileList %>%
-#  group_by(Organization)%>%
+  group_by(Organization)%>%
  # mutate(text=gsub(pattern="\\W", replace=" ",text)) %>%
  # mutate(text=gsub(pattern="\\b[A-z]\\b{1}",replace=" ",text)) %>%
   #mutate(text=stripWhitespace(text)) %>%
@@ -327,7 +323,7 @@ BoardSentences<- DBFileList %>%
   mutate(text=gsub("\n(\\d\\d)\\.","\\1-", text))%>%
   mutate(text=gsub("(\\s+\\d)\\.(\\d)","\\1-\\2", text))%>%
   mutate(text=gsub("(\\s+\\d)\\.(\\d)","\\1-\\2", text))%>%
-tidytext::unnest_tokens(SENTENCES,text,token="sentences",to_lower=FALSE)
+  tidytext::unnest_tokens(SENTENCES,text,token="sentences",to_lower=FALSE)
 
 
 

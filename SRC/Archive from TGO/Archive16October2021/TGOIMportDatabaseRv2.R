@@ -1,6 +1,6 @@
 #The GReat Overhaul
 rm(list=ls())
-# Enhanced to get both Motions and break into sentences
+
 #devtools::install_github("hadley/lineprof")
 library(tools)
 #library(readtext)
@@ -20,16 +20,7 @@ library(stringr)
 library(stringi)
 #library(pdftools)
 library(wordcloud)
-
-## Data Files
-getwd()
-DBSource<-(c("~/BoardAnalytics/TheGreatOverhaul/SourceData/ONTAllHospitalMinutesAsText"))  #external data not saved in Git hum
-RDSfiles<-c("Not Convertable")
-CompletedFiles<-c("~/BoardAnalytics/TheGreatOverhaul/BoardAnalyticsv2/Results")
-#OtherData<-c("ChathamOldBoard/Results")
-
 ### functions
-
 
 MotionFinder<- function(row,FullMinutes,MotionDF,Begins,Ends){
   # This function pulls all the motions from the Minute text file ie. FullFiles[row,"text"]
@@ -134,6 +125,11 @@ getwd()
 DBMotions<-data.frame(FileName=character(0),Motion=character(0),Organization=character(0),Date=POSIXct(),
                       Sequence=numeric(0),stringsAsFactors = FALSE)
 getwd()
+DBSource<-(c("~/BoardAnalytics/TheGreatOverhaul/SourceData/ONTAllHospitalMinutesAsText"))
+RDSfiles<-c("Not Convertable")
+CompletedFiles<-c("~/BoardAnalytics/TheGreatOverhaul/Results")
+#OtherData<-c("ChathamOldBoard/Results")
+
 
 DBFileList<-as.data.frame(list.files(DBSource,full.names = TRUE,all.files=FALSE,recursive = FALSE))
 
@@ -197,117 +193,75 @@ row
 # General methodology is specific to each hospital
 # the Generic non identifity response is from the begining to end.
 # The generic works for most of the files captured but not all files are that clean
-MinuteList=list(HSCN=list("HSCN",StartM=c(""),EndM=c("")),
-                LHSC=list("LHSC",StartM=c(""),EndM=c("")),
-                Aliston=list("Aliston",StartsM=c("Meeting of Board of Directors"),EndsM=c("Recording Secretary")),
-                AlmontGeneral=list("AlmontGeneral",StartM=c(""),EndM=c("")),
-                Atikokan=list("Atikokan",StartM=c("Board of Directors Regular Board Meeting"),EndM=c("adjourned")),
-                Dryden=list("Dryden",StartM=c(""),EndM=c("")),  
-                SickKids=list("SickKids",StartM=c(""),EndM=c("")),
-                GrandRiver=list("GrandRiver",StartM=c(""),EndM=c("")),
+MinuteList=list(HSCN=list("HSCN",StartM=c("MOTION:","The Board of Directors APPROVED by GENERAL CONSENT","\r\n\\s*\\d{1,2}\\.\\dADJOURNMENT"),EndM=c("CARRIED","Carried","\\r\\n\\d{1,2}\\.\\d{0,2}")),
+                LHSC=list("LHSC",StartM=c("It was MOVED","APPROVED by GENERAL CONSENT","\r\n\\s*\\d{1,2}\\.\\dADJOURNMENT"),EndM=c("CARRIED",regex("\\n\\r\\d{1,2}\\.\\d"),"ADJOURNED by GENERAL CONSENT","\\n\\d{1,2}\\.\\d{0,2}")),
+                Aliston=list("Aliston",StartsM=c("Moved","MOVED","The Chair requested a motion","On a Motion by","was moved by"),EndsM=c("Carried","CARRIED","meeting terminated","Passed","passed")),
+                AlmontGeneral=list("AlmontGeneral",StartM=c("IT WAS MOVED"),EndM=c("CARRIED","ADJOURNED")),
+                Atikokan=list("Atikokan",StartM=c("MOTION:","moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
+                Dryden=list("Dryden",StartM=c("MOTION","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d","\r\\n\\r\\n")),   
+                SickKids=list("SickKids",StartM=c("Moved","MOVED","On a Motion by","was moved by","MOTION","IT WAS RESOLVED","there being no further business"),EndM=c("Carried","CARRIED","ClosedSK","CloseSK","adjourned")),
+                GrandRiver=list("GrandRiver",StartM=c("MOTION:","moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
                 
-                GenericHospital=list("GenericHospital",StartM=c(""),EndM=c("")),
-                KDH=list("KDH",StartM=c(""),EndM=c("")),
-                HaliburtonHighlands=list("HaliburtonHighlands",StartM=c(""),EndM=c("")),
-                HHSC=list("HHSC",StartM=c(""),EndM=c("")),
+                GenericHospital=list("GenericHospital",StartM=c("MOTION:","moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
+                KDH=list("KDH",StartM=c("Motion:","ADJOURNMENT"),EndM=c("\r\\n\\d\\.\\d","\r\\n\\r\\n")),
+                HaliburtonHighlands=list("HaliburtonHighlands",StartM=c("MOTION:","moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
+                HHSC=list("HHSC",StartM=c("The Board of Directors APPROVED by GENERAL CONSENT","MOTION:","moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
                 
-                LACGH=list("LACGH",StartM=c(""),EndM=c("")),
+                LACGH=list("LACGH",StartM=c("MOTION","Motion ","Adjournment"),EndM=c("The motion was carried.","MOTIONFAILEDTOPASS")),
                 
-                Mackenzie =list("Mackenzie",StartM=c(""),EndM=c("")),
-                MicsGroup=list("MicsGroup",StartM=c(""),EndM=c("")),
-                MSH=list("MSH",StartM=c("Regular Board Meeting","Special Board of Directors","Board of Directors"),EndM=c("the meeting was concluded at","adjourned")),
-                NiagaraHealthSystem=list("NiagaraHealthSystem",StartM=c(""),EndM=c("")),
-                NorfolkGeneral=list("NorfolkGeneral",StartM=c(""),EndM=c("")),
+                Mackenzie =list("Mackenzie",StartM=c("MOVED","moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
+                MicsGroup=list("MicsGroup",StartM=c("MOVED","Moved by:","MOTION:","moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
+                MSH=list("MSH",StartM=c("MOTION:","moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
+                NiagaraHealthSystem=list("NiagaraHealthSystem",StartM=c("It was MOVED","MOTION:","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
+                NorfolkGeneral=list("NorfolkGeneral",StartM=c("On a Motion ","It was Moved","On a Motion by","MOVED BY:","MOTION:","moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
                 
-                Northumberland=list("Northumberland",StartM=c(""),EndM=c("")),
-                PerthSmithFalls=list("PerthSmithFalls",StartM=c(""),EndM=c("")),
-                RMH=list("RMH",StartM=c(""),EndM=c("")),
-                Sarnia=list("Sarnia",StartM=c(""),EndM=c("")),
-                SouthBruceGrey=list("SouthBruceGrey",StartM=c("board of directors meeting"),EndM=c("next reqular meeting")),
-                Temiskaming=list("Temiskaming",StartM=c(""),EndM=c("")),
-                TrilliumHospital=list("TrilliumHospital",StartM=c(""),EndM=c("")),
-                WilliamOsler=list("WilliamOsler",StartM=c(""),EndM=c("")),
+                Northumberland=list("Northumberland",StartM=c("MOTION:","Moved","On a motion","On a Motion by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\\n\\d{1,2}\\.\\d{0,2}")),
                 
-                StThomasElgin=list("StThomasElgin",StartM=c(""),EndM=c("")),
-                CambridgeMemorial=list("CambridgeMemorial",StartM=c("BOARD OF DIRECTORS MEETING"),EndM=c("the meeting adjourned at","adjourned")),
-                SinaiHealth=list("SinaiHealth",StartM=c(""),EndM=c("")),
+                PerthSmithFalls=list("PerthSmithFalls",StartM=c("MOVED by","MOTION:","moved by","Moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
+                RMH=list("RMH",StartM=c("MOTION:","moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
+                Sarnia=list("Sarnia",StartM=c("Motion duly made","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
+                SouthBruceGrey=list("SouthBruceGrey",StartM=c("MOVED by","MOTION:","moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d","\r\n\r\n\r\n")),
+                Temiskaming=list("Temiskaming",StartM=c("Moved by:","MOTION:","moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
+                TrilliumHospital=list("TrilliumHospital",StartM=c("MOVED by","MOTION:","moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
+                WilliamOsler=list("WilliamOsler",StartM=c("MOVED ","MOVED/Seconded","MOTION:","moved by","ADJOURNMENT"),EndM=c("Carried","CARRIED","carried","\r\\n\\d\\.\\d")),
                 
-                SunnyBrook=list("SunnyBrook",StartM=c(""),EndM=c("")),
-                Barrie=list("Barrie",StartM=c(""),EndM=c("")),
-                JoeBrant=list("JoeBrant",StartM=c(""),EndM=c("")),
+                StThomasElgin=list("StThomasElgin",StartM=c("MOVED","ADJOURNMENT"),EndM=c("CARRIED","adjourned")),
+                CambridgeMemorial=list("CambridgeMemorial",StartM=c("MOTION","ADJOURNMENT"),EndM=c("CARRIED","adjourned")),
+                SinaiHealth=list("SinaiHealth",StartM=c("Whereas","ADJOURNMENT"),EndM=c("resolved.+\\.","adjourned","ADJOURNMENT")),
                 
-                ChathamKent=list("ChathamKent",StartM=c(""),EndM=c("")),
-                LakeridgeHealth=list("LakeridgeHealth",StartM=c(""),EndM=c("")),
-                KHSC=list("KHSC",StartM=c(""),EndM=c("")),
-                TBay=list("TBay",StartM=c(""),EndM=c("")),
-                UHN=list("UHN",StartM=c(""),EndM=c(""))
+                SunnyBrook=list("SunnyBrook",StartM=c("Upon MOTION duly made","Chair requested approval of the agenda","There being no further business"),EndM=c("CARRIED","Agenda was approved as circulated","MEETING TERMINATED","Chair adjourned the open session","the Chair terminated the Organizational Meeting")),
+                Barrie=list("Barrie",StartM=c("duly moved, seconded and carried","ADJOURNMENT"),EndM=c("ClosedB","CloseB","Closedb","Closeb","\\(carried\\)","adjourned","RESOLVED.+\\.")),
+                JoeBrant=list("JoeBrant",StartM=c("OpenJB","The Chair requested a motion","duly moved","MOVED","Moved by"),EndM=c("ClosedJB","Carried","CARRIED","adjourned ")),
+                
+                ChathamKent=list("ChathamKent",StartM=c("IT WAS AGREED THAT","Motion","Moved by","OpenCK","There being no further business"),EndM=c("Carried","CARRIED","The motion was carried.","approved by the Supervisor for all three boards","ClosedCK","adjourned")),
+                LakeridgeHealth=list("LakeridgeHealth",StartM=c("Moved","MOVED","The Chair requested a motion","On a Motion by","was moved by"),EndM=c("Carried","CARRIED","adjourned","\r\\n\\d\\.\\d","defeated")),
+                KHSC=list("KHSC",StartM=c("Moved","MOVED","The Chair requested a motion","On a Motion by","was moved by"),EndM=c("Carried","CARRIED","meeting terminated")),
+                TBay=list("TBay",StartM=c("Moved by:","MOVED"),EndM=c("Carried","CARRIED","adjourned","\r\\n\\d\\.\\d","defeated")),
+                UHN=list("UHN",StartM=c("Moved","MOVED","Management recommends that the Board approve","Upon motion","Upon motion made","On a motion duly made","that the board of trustees approve",
+                                        "Adjournment","Management requests that the Board of Trustees approve","Motion for Approval"),
+                         EndM=c("\\n\\d{1,2}\\.\\d{1,2}","\r\\n\\t\\d\\.\\d","\r\\n\\w\\)","There being no further business, the meeting was adjourned","the meeting of the Board of Trustees was adjourned."))
 )
-i<-1160
+i<-1
+for(i in 1:nrow(DBFileList)){
+  TargetHospital<-DBFileList[i,5]
+  Begins<-str_locate_all(DBFileList[i,4],unlist(MotionList[[grep(DBFileList[i,5],MotionList)]][2]))
+  Ends<-str_locate_all(DBFileList[i,4],unlist(MotionList[[grep(DBFileList[i,5],MotionList)]][3]))
+  
+  FoundMotions<-MotionFinder(i,DBFileList[i,"text"],DBMotions,Begins,Ends)
+  
+  FoundMotions$Date<DBFileList[i,"DATE"]
+  DBMotions<-bind_rows(DBMotions,FoundMotions)
+  
+}
 
-ExtractMin<-DBFileList
-str_length(ExtractMin[i,"text"])
-ExtractMin[i,"FileName"]
-for(i in 1:nrow(ExtractMin)){
-  ExtractMin[i,"OldText"]<-ExtractMin[i,"text"]
-  TargetHospital<-ExtractMin[i,5]
- ifelse(str_length(unlist(MinuteList[[grep(ExtractMin[i,5],MinuteList)]][2]))==0,Begins<-list(1),
-        Begins<-str_locate_all(tolower(ExtractMin[i,"OldText"]),tolower(unlist(MinuteList[[grep(ExtractMin[i,5],MinuteList)]][2])))
-        )
- ifelse(unlist(Begins)==1,StartHere<-1,StartHere<-min(as.data.frame(unlist(Begins))))
-  
-  ifelse(str_length(unlist(MinuteList[[grep(ExtractMin[i,5],MinuteList)]][3]))==0,Ends<-list(-1),
-         Ends<-str_locate_all(tolower(ExtractMin[i,"OldText"]),tolower(unlist(MinuteList[[grep(ExtractMin[i,5],MinuteList)]][3])))
-         )
-  
-  ifelse(unlist(Ends)==-1,EndHere<-str_length(ExtractMin[i,"OldText"]),EndHere<-max(as.data.frame(unlist(Ends))))
-  
-  
-  ExtractMin[i,"text"]<-str_sub(ExtractMin[i,"OldText"],StartHere,EndHere)
-  str_sub(ExtractMin[i,"OldText"],StartHere,EndHere)
-str_length(ExtractMin[i,"text"])
-str_length(ExtractMin[i,"OldText"])
-  
-}
-i<-1160
-CheckMinLength<-ExtractMin %>%
-  select(FileName,Organization,OldText,text) %>%
-  mutate(OldLength=str_length(OldText)) %>%
-  mutate(newLength=str_length(text))
-for(i in 1:nrow(CheckMinLength)){
-  EndsCheck<-na.omit(as.data.frame(str_locate(tolower(CheckMinLength[i,"OldText"]),c("adjourn","adjournment","recording secretary",
-                      "next meeting","secretary chair","terminated","terminate","the meeting was concluded","Paul Rosebush"))))
-  
-  CheckMinLength[i,"AllEnds"]<-toString(EndsCheck)
-  CheckMinLength[i,"lastEnd"]<-max(EndsCheck[,"end"])
-  CheckMinLength[i,"TestScore"]<- CheckMinLength[i,"lastEnd"]/ CheckMinLength[i,"OldLength"]
-  NewEnds<-na.omit(as.data.frame(str_locate(tolower(CheckMinLength[i,"text"]),c("adjourn","adjourned","adjournment","recording secretary",
-                        "next meeting","secretary chair","jo-anne marr","terminated","terminate","the meeting was concluded","Paul Rosebush"))))
-  CheckMinLength[i,"NewEnds"]<-toString(NewEnds)
-  CheckMinLength[i,"newEnd"]<-max(NewEnds)
-  CheckMinLength[i,"ReTest"]<-CheckMinLength[i,"newEnd"]/CheckMinLength[i,"newLength"]
-}
-## Check by Hospital Begins and Ends
-CheckByHospital<-CheckMinLength %>%
-  select(FileName,text) %>%
-  mutate(Start=str_squish(str_sub(text,1,100))) %>%
-  mutate(End=str_squish(str_sub(text,str_length(text)-100,-1))) %>%
-  select(-text)
-write_csv(CheckByHospital,"CheckStartsAndEnds.csv")
-getwd()
+
+
+
 ### Tokenize sententences prior to any cleanup
-##### Transfer Minutes for extractNminutes into DBFileList
-ExtractMin<-ExtractMin %>%
-  rename(NewText=text)
-TEST<-left_join(DBFileList,ExtractMin) %>%
-  mutate(check=text==NewText)
-sum(TEST$check)
-DBFileList<-left_join(DBFileList,ExtractMin) %>%
-  select(-c(text,OldText))
-DBFileList<-DBFileList %>%
-  rename(text=NewText)
+
 
 BoardSentences<- DBFileList %>%
-#  group_by(Organization)%>%
+  group_by(Organization)%>%
  # mutate(text=gsub(pattern="\\W", replace=" ",text)) %>%
  # mutate(text=gsub(pattern="\\b[A-z]\\b{1}",replace=" ",text)) %>%
   #mutate(text=stripWhitespace(text)) %>%
@@ -327,7 +281,7 @@ BoardSentences<- DBFileList %>%
   mutate(text=gsub("\n(\\d\\d)\\.","\\1-", text))%>%
   mutate(text=gsub("(\\s+\\d)\\.(\\d)","\\1-\\2", text))%>%
   mutate(text=gsub("(\\s+\\d)\\.(\\d)","\\1-\\2", text))%>%
-tidytext::unnest_tokens(SENTENCES,text,token="sentences",to_lower=FALSE)
+  tidytext::unnest_tokens(SENTENCES,text,token="sentences",to_lower=FALSE)
 
 
 
@@ -387,7 +341,7 @@ MotionList=list(HSCN=list("HSCN",StartM=c("MOTION:","The Board of Directors APPR
                                         "Adjournment","Management requests that the Board of Trustees approve","Motion for Approval"),
                          EndM=c("\\n\\d{1,2}\\.\\d{1,2}","\r\\n\\t\\d\\.\\d","\r\\n\\w\\)","There being no further business, the meeting was adjourned","the meeting of the Board of Trustees was adjourned."))
 )
-i<-1
+i<-1335
 
 ### TESTGRROUND
 test<-c("On a motion duly made, seconded and carried, the Board of Trustees approved the minutes |
@@ -398,8 +352,8 @@ str_locate_all(test,regex("\\n\\d{1,2}\\.\\d{1,2}"))
 DBFileList[i,"FileName"]
 for(i in 1:nrow(DBFileList)){
   
-  Begins<-str_locate_all(DBFileList[i,7],unlist(MotionList[[grep(DBFileList[i,4],MotionList)]][2]))
-  Ends<-str_locate_all(DBFileList[i,7],unlist(MotionList[[grep(DBFileList[i,4],MotionList)]][3]))
+  Begins<-str_locate_all(DBFileList[i,4],unlist(MotionList[[grep(DBFileList[i,5],MotionList)]][2]))
+  Ends<-str_locate_all(DBFileList[i,4],unlist(MotionList[[grep(DBFileList[i,5],MotionList)]][3]))
   
   FoundMotions<-MotionFinder(i,DBFileList[i,"text"],DBMotions,Begins,Ends)
   
@@ -407,8 +361,7 @@ for(i in 1:nrow(DBFileList)){
   DBMotions<-bind_rows(DBMotions,FoundMotions)
   
 }
-
-
+i
 #str_locate("TESTME","\r\\n\\d{1,2}\\.\\d")
 ## Check motions
 MotionCheck<-DBMotions %>%
